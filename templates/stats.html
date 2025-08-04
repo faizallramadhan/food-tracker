@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="text-xl font-semibold mb-4">📈 Statistics</h2>
+
+{% if stats %}
+<ul class="space-y-2">
+    {% for category, count in stats.items() %}
+    <li class="bg-white rounded shadow p-3 flex justify-between">
+        <span class="text-pink-700 font-medium">{{ category }}</span>
+        <span class="text-gray-800 font-semibold">{{ count }}</span>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="text-gray-600">No stats available yet. Start logging your meals!</p>
+{% endif %}
+{% endblock %}

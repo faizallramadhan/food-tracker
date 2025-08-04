@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="text-xl font-semibold mb-4">Edit Food Entry ✏️</h2>
+<form method="POST" enctype="multipart/form-data" action="{{ url_for('edit_entry', entry_id=entry['id']) }}" class="space-y-4">
+    <div>
+        <label class="block text-sm font-medium text-gray-700">Title</label>
+        <input type="text" name="title" value="{{ entry['title'] }}" required class="w-full mt-1 border rounded px-3 py-2 focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-gray-700">Food Type</label>
+        <select name="food_type" required class="w-full mt-1 border rounded px-3 py-2 focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
+            <option value="">Select food type...</option>
+            <option value="Brunch" {% if entry['food_type'] == 'Brunch' %}selected{% endif %}>Brunch</option>
+            <option value="Lunch" {% if entry['food_type'] == 'Lunch' %}selected{% endif %}>Lunch</option>
+            <option value="Dinner" {% if entry['food_type'] == 'Dinner' %}selected{% endif %}>Dinner</option>
+            <option value="Snacks" {% if entry['food_type'] == 'Snacks' %}selected{% endif %}>Snacks</option>
+            <option value="Beverages" {% if entry['food_type'] == 'Beverages' %}selected{% endif %}>Beverages</option>
+        </select>
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Description & Photos</label>
+        <div class="border rounded-lg overflow-hidden">
+            <div id="toolbar" class="bg-gray-50 border-b px-3 py-2 flex flex-wrap gap-2">
+                <button type="button" class="toolbar-btn" data-command="bold" title="Bold">B</button>
+                <button type="button" class="toolbar-btn" data-command="italic" title="Italic"><em>I</em></button>
+                <button type="button" class="toolbar-btn" data-command="underline" title="Underline"><u>U</u></button>
+                <div class="w-px h-6 bg-gray-300"></div>
+                <button type="button" class="toolbar-btn" data-command="insertUnorderedList" title="Bullet List">• List</button>
+                <button type="button" class="toolbar-btn" data-command="insertOrderedList" title="Numbered List">1. List</button>
+                <div class="w-px h-6 bg-gray-300"></div>
+                <button type="button" id="image-btn" class="toolbar-btn" title="Insert Image">🖼️</button>
+                <input type="file" id="image-input" accept="image/*" multiple style="display: none;">
+            </div>
+
+            <div id="editor" contenteditable="true"
+                 class="min-h-[300px] p-4 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                 style="max-height: 500px; overflow-y: auto;"
+                 placeholder="Describe your food experience... You can add images by clicking the image button above!">
+                {{ entry['description'] | safe }}
+            </div>
+        </div>
+        <textarea name="description" id="description-input" style="display: none;"></textarea>
+    </div>
+
+    <div id="upload-progress" class="hidden">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div class="flex items-center">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                <span class="text-sm text-blue-700">Uploading images...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex gap-4">
+        <button type="submit" class="bg-pink-600 text-white px-6 py-2 rounded-lg hover:bg-pink-700 transition-colors duration-200 font-medium">
+            Update Entry
+        </button>
+        <a href="{{ url_for('index') }}" class="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition-colors duration-200 font-medium">
+            Cancel
+        </a>
+    </div>
+</form>
+
+<style>
+.toolbar-btn {
+    padding: 6px 8px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    border-radius: 4px;
+    color: #374151;
+    transition: all 0.2s;
+}
+.toolbar-btn:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+.toolbar-btn.active {
+    background: #dbeafe;
+    border-color: #3b82f6;
+    color: #1d4ed8;
+}
+#editor {
+    line-height: 1.6;
+}
+#editor:empty:before {
+    content: attr(placeholder);
+    color: #9ca3af;
+    font-style: italic;
+}
+#editor img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 10px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+#editor p {
+    margin: 8px 0;
+}
+#editor ul, #editor ol {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+#editor li {
+    margin: 4px 0;
+}
+#editor strong {
+    font-weight: bold;
+}
+#editor em {
+    font-style: italic;
+}
+#editor u {
+    text-decoration: underline;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const editor = document.getElementById('editor');
+    const descriptionInput = document.getElementById('description-input');
+    const imageBtn = document.getElementById('image-btn');
+    const imageInput = document.getElementById('image-input');
+    const uploadProgress = document.getElementById('upload-progress');
+
+    document.querySelectorAll('.toolbar-btn[data-command]').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const command = this.dataset.command;
+            document.execCommand(command, false, null);
+            editor.focus();
+            updateToolbarState();
+        });
+    });
+
+    function updateToolbarState() {
+        document.querySelectorAll('.toolbar-btn[data-command]').forEach(button => {
+            const command = button.dataset.command;
+            const isActive = document.queryCommandState(command);
+            button.classList.toggle('active', isActive);
+        });
+    }
+
+    editor.addEventListener('selectionchange', updateToolbarState);
+    editor.addEventListener('keyup', updateToolbarState);
+    editor.addEventListener('mouseup', updateToolbarState);
+
+    imageBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        imageInput.click();
+    });
+
+    imageInput.addEventListener('change', function(e) {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+        uploadProgress.classList.remove('hidden');
+
+        files.forEach(file => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.alt = file.name;
+                    img.style.maxWidth = '100%';
+                    img.style.height = 'auto';
+                    img.style.borderRadius = '8px';
+                    img.style.margin = '10px 0';
+                    img.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+
+                    const selection = window.getSelection();
+                    if (selection.rangeCount > 0) {
+                        const range = selection.getRangeAt(0);
+                        range.deleteContents();
+                        range.insertNode(img);
+                        range.setStartAfter(img);
+                        range.collapse(true);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    } else {
+                        editor.appendChild(img);
+                    }
+
+                    updateDescriptionInput();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        imageInput.value = '';
+        setTimeout(() => {
+            uploadProgress.classList.add('hidden');
+        }, 1000);
+    });
+
+    function updateDescriptionInput() {
+        descriptionInput.value = editor.innerHTML;
+    }
+
+    editor.addEventListener('input', updateDescriptionInput);
+    editor.addEventListener('paste', function(e) {
+        setTimeout(updateDescriptionInput, 100);
+    });
+
+    document.querySelector('form').addEventListener('submit', function(e) {
+        updateDescriptionInput();
+        if (editor.textContent.trim() === '' && editor.innerHTML.trim() === '') {
+            e.preventDefault();
+            alert('Please add some description or images to your food entry.');
+            return false;
+        }
+    });
+
+    // Initialize description on page load
+    updateDescriptionInput();
+    updateToolbarState();
+});
+</script>
+{% endblock %}
