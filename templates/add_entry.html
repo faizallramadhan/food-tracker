@@ -24,39 +24,14 @@
         <div class="border rounded-lg overflow-hidden">
             <!-- Rich Text Editor Toolbar -->
             <div id="toolbar" class="bg-gray-50 border-b px-3 py-2 flex flex-wrap gap-2">
-                <button type="button" class="toolbar-btn" data-command="bold" title="Bold">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"></path>
-                    </svg>
-                </button>
-                <button type="button" class="toolbar-btn" data-command="italic" title="Italic">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 4l4 16M6 8h12M4 16h12"></path>
-                    </svg>
-                </button>
-                <button type="button" class="toolbar-btn" data-command="underline" title="Underline">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                    </svg>
-                </button>
+                <button type="button" class="toolbar-btn" data-command="bold" title="Bold">B</button>
+                <button type="button" class="toolbar-btn" data-command="italic" title="Italic"><em>I</em></button>
+                <button type="button" class="toolbar-btn" data-command="underline" title="Underline"><u>U</u></button>
                 <div class="w-px h-6 bg-gray-300"></div>
-                <button type="button" class="toolbar-btn" data-command="insertUnorderedList" title="Bullet List">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                    </svg>
-                </button>
-                <button type="button" class="toolbar-btn" data-command="insertOrderedList" title="Numbered List">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h18M3 12h18m-9 8h9"></path>
-                    </svg>
-                </button>
+                <button type="button" class="toolbar-btn" data-command="insertUnorderedList" title="Bullet List">• List</button>
+                <button type="button" class="toolbar-btn" data-command="insertOrderedList" title="Numbered List">1. List</button>
                 <div class="w-px h-6 bg-gray-300"></div>
-                <button type="button" id="image-btn" class="toolbar-btn" title="Insert Image">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
-                </button>
+                <button type="button" id="image-btn" class="toolbar-btn" title="Insert Image">🖼️</button>
                 <input type="file" id="image-input" accept="image/*" multiple style="display: none;">
             </div>
             
@@ -76,7 +51,7 @@
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <div class="flex items-center">
                 <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                <span class="text-sm text-blue-700">Uploading images...</span>
+                <span class="text-sm text-blue-700">Processing images...</span>
             </div>
         </div>
     </div>
@@ -99,11 +74,21 @@
     border-radius: 4px;
     color: #374151;
     transition: all 0.2s;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+    min-width: 32px;
+    text-align: center;
 }
 
 .toolbar-btn:hover {
     background: #f3f4f6;
     border-color: #d1d5db;
+}
+
+.toolbar-btn:active {
+    background: #e5e7eb;
+    transform: translateY(1px);
 }
 
 .toolbar-btn.active {
@@ -156,7 +141,6 @@
 }
 </style>
 
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const editor = document.getElementById('editor');
@@ -169,89 +153,260 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.toolbar-btn[data-command]').forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
+            e.stopPropagation();
+            
             const command = this.dataset.command;
-            document.execCommand(command, false, null);
+            console.log('Executing command:', command);
+            
+            // Ensure editor has focus
             editor.focus();
-            updateToolbarState();
+            
+            try {
+                // Execute the command
+                const success = document.execCommand(command, false, null);
+                console.log('Command success:', success);
+                
+                if (!success) {
+                    // Fallback for some commands
+                    handleCommandFallback(command);
+                }
+            } catch (error) {
+                console.error('Error executing command:', error);
+                handleCommandFallback(command);
+            }
+            
+            // Keep focus on editor
+            setTimeout(() => {
+                editor.focus();
+                updateToolbarState();
+            }, 10);
         });
     });
+    
+    // Fallback function for commands that might fail
+    function handleCommandFallback(command) {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return;
+        
+        const range = selection.getRangeAt(0);
+        const selectedText = range.toString();
+        
+        if (!selectedText) return;
+        
+        let wrapper;
+        switch (command) {
+            case 'bold':
+                wrapper = document.createElement('strong');
+                break;
+            case 'italic':
+                wrapper = document.createElement('em');
+                break;
+            case 'underline':
+                wrapper = document.createElement('u');
+                break;
+            default:
+                return;
+        }
+        
+        if (wrapper) {
+            try {
+                range.deleteContents();
+                wrapper.textContent = selectedText;
+                range.insertNode(wrapper);
+                
+                // Clear selection
+                selection.removeAllRanges();
+                const newRange = document.createRange();
+                newRange.setStartAfter(wrapper);
+                newRange.collapse(true);
+                selection.addRange(newRange);
+            } catch (error) {
+                console.error('Fallback command error:', error);
+            }
+        }
+    }
     
     // Update toolbar button states based on current selection
     function updateToolbarState() {
         document.querySelectorAll('.toolbar-btn[data-command]').forEach(button => {
             const command = button.dataset.command;
-            const isActive = document.queryCommandState(command);
-            button.classList.toggle('active', isActive);
+            try {
+                const isActive = document.queryCommandState(command);
+                button.classList.toggle('active', isActive);
+            } catch (error) {
+                // If queryCommandState fails, just remove active state
+                button.classList.remove('active');
+            }
         });
     }
     
     // Update toolbar state on selection change
-    editor.addEventListener('selectionchange', updateToolbarState);
+    document.addEventListener('selectionchange', function() {
+        // Only update if selection is within our editor
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            if (editor.contains(range.commonAncestorContainer) || 
+                range.commonAncestorContainer === editor) {
+                updateToolbarState();
+            }
+        }
+    });
+    
     editor.addEventListener('keyup', updateToolbarState);
     editor.addEventListener('mouseup', updateToolbarState);
     
-    // Image upload functionality
-    imageBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        imageInput.click();
+    // Ensure editor gets focus when clicked
+    editor.addEventListener('click', function() {
+        editor.focus();
     });
     
-    imageInput.addEventListener('change', function(e) {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
-        
+    // Image upload functionality
+imageBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    editor.focus();
+    imageInput.click();
+});
+
+imageInput.addEventListener('change', function(e) {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
+    uploadProgress.classList.remove('hidden');
+    editor.focus();
+    
+    files.forEach(file => {
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Create actual image element instead of placeholder
+                const img = document.createElement('img');
+                img.src = e.target.result; // This is the base64 data
+                img.alt = file.name;
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                img.style.borderRadius = '8px';
+                img.style.margin = '10px 0';
+                img.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                
+                // Insert image at cursor position or at end
+                const selection = window.getSelection();
+                if (selection && selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    range.deleteContents();
+                    
+                    // Create a paragraph wrapper for the image
+                    const p = document.createElement('p');
+                    p.appendChild(img);
+                    range.insertNode(p);
+                    
+                    // Move cursor after the image
+                    range.setStartAfter(p);
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                } else {
+                    // If no selection, append to end
+                    const p = document.createElement('p');
+                    p.appendChild(img);
+                    editor.appendChild(p);
+                }
+                
+                // Create a new paragraph for continued typing
+                const newP = document.createElement('p');
+                newP.innerHTML = '<br>';
+                editor.appendChild(newP);
+                
+                // Set cursor to new paragraph
+                const range = document.createRange();
+                const selection2 = window.getSelection();
+                if (selection2) {
+                    range.setStart(newP, 0);
+                    range.collapse(true);
+                    selection2.removeAllRanges();
+                    selection2.addRange(range);
+                }
+                
+                editor.focus();
+                updateDescriptionInput();
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // IMPORTANT: Clear the input so the same files don't get submitted as separate uploads
+    imageInput.value = '';
+    
+    setTimeout(() => {
+        uploadProgress.classList.add('hidden');
+    }, 1500);
+});
+
+// Handle paste events for images
+editor.addEventListener('paste', function(e) {
+    const items = Array.from(e.clipboardData.items);
+    const imageItems = items.filter(item => item.type.startsWith('image/'));
+    
+    if (imageItems.length > 0) {
+        e.preventDefault();
         uploadProgress.classList.remove('hidden');
+        editor.focus();
         
-        files.forEach(file => {
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.alt = file.name;
-                    img.style.maxWidth = '100%';
-                    img.style.height = 'auto';
-                    img.style.borderRadius = '8px';
-                    img.style.margin = '10px 0';
-                    img.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+        imageItems.forEach(item => {
+            const file = item.getAsFile();
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Create actual image element
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.alt = 'Pasted image';
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                img.style.borderRadius = '8px';
+                img.style.margin = '10px 0';
+                img.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                
+                // Insert at cursor position
+                const selection = window.getSelection();
+                if (selection && selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    range.deleteContents();
                     
-                    // Insert image at current cursor position
-                    const selection = window.getSelection();
-                    if (selection.rangeCount > 0) {
-                        const range = selection.getRangeAt(0);
-                        range.deleteContents();
-                        range.insertNode(img);
-                        range.setStartAfter(img);
-                        range.collapse(true);
-                        selection.removeAllRanges();
-                        selection.addRange(range);
-                    } else {
-                        editor.appendChild(img);
-                    }
+                    const p = document.createElement('p');
+                    p.appendChild(img);
+                    range.insertNode(p);
                     
-                    editor.focus();
-                    updateDescriptionInput();
-                };
-                reader.readAsDataURL(file);
-            }
+                    range.setStartAfter(p);
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                } else {
+                    const p = document.createElement('p');
+                    p.appendChild(img);
+                    editor.appendChild(p);
+                }
+                
+                updateDescriptionInput();
+            };
+            reader.readAsDataURL(file);
         });
         
-        // Clear the input so the same file can be selected again
-        imageInput.value = '';
         setTimeout(() => {
             uploadProgress.classList.add('hidden');
-        }, 1000);
-    });
+        }, 1500);
+    }
+}); 
     
     // Update hidden textarea with editor content
     function updateDescriptionInput() {
+        // Simply copy the innerHTML directly - no need for conversion
         descriptionInput.value = editor.innerHTML;
+        console.log('Updated description input:', editor.innerHTML);
     }
     
     // Update description input when editor content changes
     editor.addEventListener('input', updateDescriptionInput);
     editor.addEventListener('paste', function(e) {
-        // Allow paste but clean up afterwards
         setTimeout(updateDescriptionInput, 100);
     });
     
@@ -259,12 +414,24 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelector('form').addEventListener('submit', function(e) {
         updateDescriptionInput();
         
+        // Show progress while form is being processed
+        uploadProgress.classList.remove('hidden');
+        
         // Ensure we have content
         if (editor.textContent.trim() === '' && editor.innerHTML.trim() === '') {
             e.preventDefault();
+            uploadProgress.classList.add('hidden');
             alert('Please add some description or images to your food entry.');
             return false;
         }
+        
+        // Debug: log what we're sending
+        console.log('Submitting form with description:', descriptionInput.value);
+        
+        // Update button text
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        submitBtn.textContent = 'Processing...';
+        submitBtn.disabled = true;
     });
     
     // Handle paste events for images
@@ -275,11 +442,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (imageItems.length > 0) {
             e.preventDefault();
             uploadProgress.classList.remove('hidden');
+            editor.focus();
             
             imageItems.forEach(item => {
                 const file = item.getAsFile();
                 const reader = new FileReader();
                 reader.onload = function(e) {
+                    // Create actual image element
                     const img = document.createElement('img');
                     img.src = e.target.result;
                     img.alt = 'Pasted image';
@@ -291,10 +460,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Insert at cursor position
                     const selection = window.getSelection();
-                    const range = selection.getRangeAt(0);
-                    range.insertNode(img);
-                    range.setStartAfter(img);
-                    range.collapse(true);
+                    if (selection && selection.rangeCount > 0) {
+                        const range = selection.getRangeAt(0);
+                        range.deleteContents();
+                        
+                        const p = document.createElement('p');
+                        p.appendChild(img);
+                        range.insertNode(p);
+                        
+                        range.setStartAfter(p);
+                        range.collapse(true);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    } else {
+                        const p = document.createElement('p');
+                        p.appendChild(img);
+                        editor.appendChild(p);
+                    }
                     
                     updateDescriptionInput();
                 };
@@ -303,7 +485,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             setTimeout(() => {
                 uploadProgress.classList.add('hidden');
-            }, 1000);
+            }, 1500);
         }
     });
     
